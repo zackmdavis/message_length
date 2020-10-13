@@ -11,6 +11,13 @@ use itertools::Itertools;
 const O: bool = false;
 const I: bool = true;
 
+fn bit_product(n: usize) -> Vec<Vec<bool>> {
+    (0..n)
+        .map(|_| vec![O, I])
+        .multi_cartesian_product()
+        .collect::<Vec<_>>()
+}
+
 #[derive(Debug)]
 struct ModelScore {
     fit: f64,
@@ -68,17 +75,35 @@ impl MarkovTheory {
         result
     }
 
-    fn likelihood(&self, data: &BitSlice) -> f64 {
-        let mut total = 1.;
+    fn log_loss(&self, data: &BitSlice) -> f64 {
+        let mut total = 0.;
         for window in data.windows(self.degree + 1) {
             let (observation, tail) = window.split_at(self.degree);
             let next = tail[0];
-            total *= self
+            total += -self
                 .parameters
                 .get(&(observation.to_bitvec(), next))
-                .unwrap();
+                .unwrap()
+                .log2();
         }
         total
+    }
+
+    fn uniform_random_theory(degree: usize) -> Self {
+        let mut parameters = HashMap::new();
+        let prefixes = if degree > 0 {
+            bit_product(degree)
+        } else {
+            vec![Vec::new()]
+        };
+        for prefix_ in prefixes {
+            let p: f64 = rand::random();
+            let mut prefix = BitVec::new();
+            prefix.extend(&prefix_);
+            parameters.insert((prefix.clone(), O), p);
+            parameters.insert((prefix.clone(), I), 1. - p);
+        }
+        MarkovTheory { degree, parameters }
     }
 
     fn maximum_likelihood_estimate(data: &BitSlice, degree: usize) -> Self {
@@ -86,10 +111,7 @@ impl MarkovTheory {
         let mut parameters = HashMap::with_capacity(2usize.pow(k));
         let prefix_size = degree;
         let prefixes = if prefix_size > 0 {
-            (0..prefix_size)
-                .map(|_| vec![O, I])
-                .multi_cartesian_product()
-                .collect::<Vec<_>>()
+            bit_product(prefix_size)
         } else {
             vec![Vec::new()]
         };
@@ -130,7 +152,7 @@ impl MarkovTheory {
     }
 
     fn evaluate(&self, data: &BitSlice) -> ModelScore {
-        let fit = -self.likelihood(data).log2();
+        let fit = self.log_loss(&data);
         let complexity = 2f64.powi(self.degree as i32);
         ModelScore { fit, complexity }
     }
@@ -138,40 +160,22 @@ impl MarkovTheory {
 
 fn main() {
     println!("Hello information theory world!");
-    let mut true_parameters = HashMap::new();
-    true_parameters.insert((bitvec![0, 0], O), 0.6);
-    true_parameters.insert((bitvec![0, 0], I), 0.4);
-    true_parameters.insert((bitvec![0, 1], O), 0.7);
-    true_parameters.insert((bitvec![0, 1], I), 0.3);
-    true_parameters.insert((bitvec![1, 0], O), 0.8);
-    true_parameters.insert((bitvec![1, 0], I), 0.2);
-    true_parameters.insert((bitvec![1, 1], O), 0.9);
-    true_parameters.insert((bitvec![1, 1], I), 0.1);
-    let the_truth = MarkovTheory {
-        degree: 2,
-        parameters: true_parameters,
-    };
-    let data = the_truth.sample(1000);
-    println!("observed data is {:?}", data);
-    for i in 0..8 {
-        let theory = MarkovTheory::maximum_likelihood_estimate(&data, i);
-        println!("{}th-order theory: {}", i, theory.evaluate(&data).display())
-    }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::{I, O};
-    use itertools::Itertools;
-
-    #[test]
-    fn test_bit_product() {
-        assert_eq!(
-            (0..2)
-                .map(|_| vec![O, I])
-                .multi_cartesian_product()
-                .collect::<Vec<_>>(),
-            vec![vec![O, O], vec![O, I], vec![I, O], vec![I, I]]
+    for true_degree in 0..4 {
+        let the_truth = MarkovTheory::uniform_random_theory(true_degree);
+        let data = the_truth.sample(10000);
+        println!(
+            "data for a true {}th-order theory: {:?}",
+            true_degree, the_truth
         );
+        for hypothesized_degree in 0..8 {
+            let theory = MarkovTheory::maximum_likelihood_estimate(&data, hypothesized_degree);
+            println!(
+                "{}th-order theory: {}",
+                hypothesized_degree,
+                theory.evaluate(&data).display()
+            )
+        }
+        println!();
     }
 }
