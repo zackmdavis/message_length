@@ -11,3 +11,5 @@ I'm reading Peter D. Grünwald's book on _The Minimum Description Length Princip
 Then MDL inference of some bitstream with respect to the _k_-th order Markov chain hypothesis class means minimizing the sum of "bitstream encoded with respect to distribution" + "integer code for Markov-depth parameter" + "integer code for parameter precision" + "the actual parameter value".
 
 ... okay, now I'm reading Rissanen 1983, and I don't think I'm reading to start coding (no pun intended) yet?
+
+Might want to re-title this to "model selection"?

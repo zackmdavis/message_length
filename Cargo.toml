@@ -1,9 +1,11 @@
 [package]
 name = "message_length"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Zack M. Davis <code@zackmdavis.net>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bitvec = "0.19.3"
+itertools = "0.9.0"
