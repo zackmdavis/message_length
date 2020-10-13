@@ -12,18 +12,71 @@ const O: bool = false;
 const I: bool = true;
 
 #[derive(Debug)]
+struct ModelScore {
+    fit: f64,
+    complexity: f64,
+}
+
+impl ModelScore {
+    fn total(&self) -> f64 {
+        self.fit + self.complexity
+    }
+
+    fn display(&self) -> String {
+        format!(
+            "fit = {}, complexity = {}, total = {}",
+            self.fit,
+            self.complexity,
+            self.total()
+        )
+    }
+}
+
+#[derive(Debug)]
 struct MarkovTheory {
     degree: usize,
-    parameters: HashMap<(BitVec, bool), f32>,
+    parameters: HashMap<(BitVec, bool), f64>,
 }
 
 impl MarkovTheory {
-    fn likelihood(&self, data: &BitSlice) -> f32 {
+    fn sample(&self, n: usize) -> BitVec {
+        // realistic midway start
+        let mut result = BitVec::new();
+        let roll: f64 = rand::random();
+        let mut waterline = 0.;
+        for (parameter, probability) in self.parameters.iter() {
+            waterline += probability;
+            if waterline > roll {
+                let (prefix, _) = parameter;
+                result.extend(prefix);
+            }
+        }
+        // TODO: truncate if n was smaller than our degree
+        // we're initialized, let's go
+        while result.len() < n {
+            let p = *self
+                .parameters
+                .get(&(result[result.len() - self.degree..].to_bitvec(), O))
+                .unwrap();
+            let roll: f64 = rand::random();
+            if roll < p {
+                result.push(O);
+            } else {
+                result.push(I);
+            }
+        }
+        result
+    }
+
+    fn likelihood(&self, data: &BitSlice) -> f64 {
         let mut total = 1.;
         for window in data.windows(self.degree + 1) {
             let (observation, tail) = window.split_at(self.degree);
             let next = tail[0];
-            total *= self.parameters.get(&(observation.to_bitvec(), next)).unwrap();
+            total *= self
+                .parameters
+                .get(&(observation.to_bitvec(), next))
+                .unwrap();
         }
         total
     }
@@ -66,43 +119,44 @@ impl MarkovTheory {
             assert_eq!(chances, zero_continuation + one_continuation);
             parameters.insert(
                 (prefix.clone(), O),
-                zero_continuation as f32 / chances as f32,
+                zero_continuation as f64 / chances as f64,
             );
             parameters.insert(
                 (prefix.clone(), I),
-                one_continuation as f32 / chances as f32,
+                one_continuation as f64 / chances as f64,
             );
         }
         Self { degree, parameters }
     }
-}
 
-#[derive(Debug)]
-struct ModelScore {
-    fit: f32,
-    complexity: f32
-}
-
-fn evaluate_model(theory: &MarkovTheory, data: &BitSlice) -> ModelScore {
-    let fit = theory.likelihood(data).log2();
-    let complexity = 0.;
-    ModelScore { fit, complexity }
+    fn evaluate(&self, data: &BitSlice) -> ModelScore {
+        let fit = -self.likelihood(data).log2();
+        let complexity = 2f64.powi(self.degree as i32);
+        ModelScore { fit, complexity }
+    }
 }
 
 fn main() {
-    let mut data = BitVec::new();
-    data.extend(&[
-        O, I, O, I, O, I, O, O, O, O, I, I, I, O, I, O, I, O, I, O, I, O, I, O, I, O, I,
-    ]);
-    let zero_theory = MarkovTheory::maximum_likelihood_estimate(&data, 0);
-    let one_theory = MarkovTheory::maximum_likelihood_estimate(&data, 1);
-    let two_theory = MarkovTheory::maximum_likelihood_estimate(&data, 2);
-    let three_theory = MarkovTheory::maximum_likelihood_estimate(&data, 3);
     println!("Hello information theory world!");
-    println!("zeroth-order theory: {:?}", zero_theory);
-    println!("first-order theory: {:?}", one_theory);
-    println!("second-order theory: {:?}", two_theory);
-    println!("third-order theory: {:?}", three_theory);
+    let mut true_parameters = HashMap::new();
+    true_parameters.insert((bitvec![0, 0], O), 0.6);
+    true_parameters.insert((bitvec![0, 0], I), 0.4);
+    true_parameters.insert((bitvec![0, 1], O), 0.7);
+    true_parameters.insert((bitvec![0, 1], I), 0.3);
+    true_parameters.insert((bitvec![1, 0], O), 0.8);
+    true_parameters.insert((bitvec![1, 0], I), 0.2);
+    true_parameters.insert((bitvec![1, 1], O), 0.9);
+    true_parameters.insert((bitvec![1, 1], I), 0.1);
+    let the_truth = MarkovTheory {
+        degree: 2,
+        parameters: true_parameters,
+    };
+    let data = the_truth.sample(1000);
+    println!("observed data is {:?}", data);
+    for i in 0..8 {
+        let theory = MarkovTheory::maximum_likelihood_estimate(&data, i);
+        println!("{}th-order theory: {}", i, theory.evaluate(&data).display())
+    }
 }
 
 #[cfg(test)]
