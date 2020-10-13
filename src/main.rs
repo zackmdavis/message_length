@@ -163,7 +163,8 @@ fn main() {
 
     for true_degree in 3..4 {
         let the_truth = MarkovTheory::uniform_random_theory(true_degree);
-        let data = the_truth.sample(100000);
+        let data = the_truth.sample(10000);
+        println!("the data: {:?}", data);
         println!(
             "data for a true {}th-order theory: {:?}",
             true_degree, the_truth

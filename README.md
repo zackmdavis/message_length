@@ -12,4 +12,6 @@ Then MDL inference of some bitstream with respect to the _k_-th order Markov cha
 
 ... okay, now I'm reading Rissanen 1983, and I don't think I'm reading to start coding (no pun intended) yet?
 
-Might want to re-title this to "model selection"?
+Confirm—the value that the fit converges to should be the [entropy rate](https://en.wikipedia.org/wiki/Entropy_rate) of the Markov chain times the number of bits we sampled?
+
+I think the blog post title should just be straightforward (unless I think of something cooler): "Minimum Description Length Model Selection for Higher-Order Markov Chains"? It should definitely have a state diagram!
