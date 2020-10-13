@@ -153,7 +153,7 @@ impl MarkovTheory {
 
     fn evaluate(&self, data: &BitSlice) -> ModelScore {
         let fit = self.log_loss(&data);
-        let complexity = 2f64.powi(self.degree as i32);
+        let complexity = 2f64.powi(self.degree as i32) * 64.;
         ModelScore { fit, complexity }
     }
 }
@@ -161,9 +161,9 @@ impl MarkovTheory {
 fn main() {
     println!("Hello information theory world!");
 
-    for true_degree in 0..4 {
+    for true_degree in 3..4 {
         let the_truth = MarkovTheory::uniform_random_theory(true_degree);
-        let data = the_truth.sample(10000);
+        let data = the_truth.sample(100000);
         println!(
             "data for a true {}th-order theory: {:?}",
             true_degree, the_truth
