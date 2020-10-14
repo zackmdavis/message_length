@@ -15,3 +15,6 @@ Then MDL inference of some bitstream with respect to the _k_-th order Markov cha
 Confirm—the value that the fit converges to should be the [entropy rate](https://en.wikipedia.org/wiki/Entropy_rate) of the Markov chain times the number of bits we sampled?
 
 I think the blog post title should just be straightforward (unless I think of something cooler): "Minimum Description Length Model Selection for Higher-Order Markov Chains"? It should definitely have a state diagram!
+
+In the limit, you could "compress" by assigning the entire 10000-bit sequence a single symbol ... but it would take you 10000 bits to explain what the code was!
+
