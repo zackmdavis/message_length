@@ -1,3 +1,5 @@
+import itertools
+
 for n in range(1, 4):
     lines = []
     for bits in itertools.product(['0', '1'], repeat=n):
