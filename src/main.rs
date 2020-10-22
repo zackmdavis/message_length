@@ -75,6 +75,19 @@ impl MarkovTheory {
         result
     }
 
+    fn raw_likelihood(&self, data: &BitSlice) -> f64 {
+        let mut total = 1.;
+        for window in data.windows(self.degree + 1) {
+            let (observation, tail) = window.split_at(self.degree);
+            let next = tail[0];
+            total *= *self
+                .parameters
+                .get(&(observation.to_bitvec(), next))
+                .unwrap() as f64
+        }
+        total
+    }
+
     fn log_loss(&self, data: &BitSlice) -> f32 {
         let mut total = 0.;
         for window in data.windows(self.degree + 1) {
@@ -186,15 +199,24 @@ fn main() {
         parameters: true_parameters,
     };
     let data = the_truth.sample(10000);
+
+
+    // let our_sample = vec![false, true, true, false, false, true, true, false, true, true, false, true, false, true, false, true, true, false, true, true, true, true, true, true, false, false, false, false, true, false, false, true, true, true, false, false, false, false, true, false, false, false, true, true, false, true, false, false, false, true, true, false, true, false, true, true, false, true, true, false, true, false, false, false, false, false, false, true, false, true, false, false, false, false, false, false, true, false, true, false, true, false, true, false, false, true, true, true, true, false, true, false, false, false, true, false, true, true, true, true, false, true, false, true, false, false, true, false, false, true, false, true, false, true, false, false, true, false, true, false, true, false, true, false, true, false, true, false, false, false, false, true, false, true, false, false, true, true, false, true, false, true, false, true, false, false, true, true, true, true, true, true, true, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, true, true, true, true, true, true, false, true, false, true, false, true, true, false, true, false, true, false, true, true, false, true, true, true, true, true, false, true, false, true, false, true, true, false, true, true, false, true, false, true, false, true, false, true, false, false, false, false, false, false, false, true, true, false, true, true, true, true, true, false, false, false, false, false, true, true, true, false, true, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, false, true, false, true, false, true, true, false, true, false, true, false, true, false, true, false, true, false, false, true, false, true, false, true, false, true, true, false, true, false, true, false, true, false, true, true, false, false, true, true, true, false, false, true, true, false, false, false, false, true, true, false, false, true, true, false, true, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, true, true, false, false, true, false, true, true, false, true, false, false, true, true, false, true, false, true, false, true, false, true, false, true, false, true, true, false, false, false, false, false, false, true, false, true, false, true, false, true, true, true, false, true, true, false, true, false, true, false, false, true, false, true, true, false, false, true, true, true, true, true, true, true, false, true, false, true, true, true, true, false, true, true, true, false, true, false, false, false, true, false, true, false, true, false, true, false, true, true, true, false, false, true, true, true, true, false, true, false, false, false, true, true, false, true, true, false, true, false, true, false, true, false, true, true, false, true, false, true, true, false, false, false, true, false, true, true, false, false, false, false, false, true, false, true, false, true, false, true, false, false, true, true, false, false, true, true, false, true, false, true, false, true, false, true, true, true, true];
+    // let mut data = BitVec::new();
+    // data.extend(&our_sample);
+
     println!("observed data is {:?}", data);
 
-    for hypothesized_degree in 0..8 {
+    for hypothesized_degree in 0..20 {
         let theory = MarkovTheory::maximum_likelihood_estimate(&data, hypothesized_degree);
-        // println!("{:?}", theory);
+        if hypothesized_degree == 0 {
+            println!("{:?}", theory);
+        }
         println!(
             "{}th-order theory: {}",
             hypothesized_degree,
             theory.evaluate(&data).display()
-        )
+        );
+        // println!("raw fit: {}", theory.raw_likelihood(&data));
     }
 }
